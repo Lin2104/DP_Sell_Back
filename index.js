@@ -19,6 +19,7 @@ const imageService = require('./services/imageService');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 const PDFDocument = require('pdfkit');
 const path = require('path');
 const fs = require('fs');
@@ -463,7 +464,6 @@ app.post(`${API_BASE}/auth/forgot-password`, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const crypto = require('crypto');
     const token = crypto.randomBytes(20).toString('hex');
     user.resetPasswordToken = token;
     user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
