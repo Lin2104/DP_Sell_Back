@@ -1,0 +1,41 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "start:support": "node support-bot.js",
+    "build": "npm install",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google/genai": "^1.50.1",
+    "@google/generative-ai": "^0.24.1",
+    "axios": "^1.15.0",
+    "bcryptjs": "^3.0.3",
+    "bullmq": "^5.76.1",
+    "cheerio": "^1.2.0",
+    "cloudinary": "^2.10.0",
+    "compression": "^1.8.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.1",
+    "express": "^5.2.1",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^8.4.0",
+    "helmet": "^8.1.0",
+    "ioredis": "^5.10.1",
+    "jsonwebtoken": "^9.0.3",
+    "mail-listener5": "^2.1.2",
+    "mmpay-node-sdk": "^1.0.6",
+    "mongoose": "^9.4.1",
+    "nodemailer": "^8.0.5",
+    "ollama": "^0.6.3",
+    "pdfkit": "^0.18.0",
+    "telegraf": "^4.16.3",
+    "xss-clean": "^0.1.4"
+  },
+  "description": ""
+}
