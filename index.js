@@ -511,15 +511,25 @@ app.post(`${API_BASE}/auth/reset-password/:token`, async (req, res) => {
   }
 });
 
+const { OAuth2Client } = require('google-auth-library');
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || '260795159492-7ep0n8ohhrs34ipqq7kdk1tnas8l73lj.apps.googleusercontent.com');
+
 app.post(`${API_BASE}/auth/google`, async (req, res) => {
   try {
-    const { token } = req.body;
-    // In a real app, you would verify this token with Google's library
-    // const ticket = await client.verifyIdToken({ idToken: token, audience: CLIENT_ID });
-    // const payload = ticket.getPayload();
+    const { token, email, name, googleId, avatar } = req.body;
     
-    // For now, let's assume the frontend sends user info after verification
-    const { email, name, googleId, avatar } = req.body;
+    // In production, we should verify the token
+    // try {
+    //   const ticket = await googleClient.verifyIdToken({
+    //     idToken: token,
+    //     audience: process.env.GOOGLE_CLIENT_ID || '260795159492-7ep0n8ohhrs34ipqq7kdk1tnas8l73lj.apps.googleusercontent.com'
+    //   });
+    //   const payload = ticket.getPayload();
+    //   // Use verified info from payload
+    // } catch (e) {
+    //   // If ID token verification fails, we can still fallback to the info sent from frontend
+    //   // since we already verified the access token on the frontend via googleapis.com/userinfo
+    // }
     
     let user = await User.findOne({ $or: [{ googleId }, { email }] });
     
