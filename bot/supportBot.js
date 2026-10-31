@@ -4,7 +4,7 @@ const tools = require("../ai/tools"); // Added tools import
 require('dotenv').config();
 
 const supportBotToken = process.env.SUPPORT_BOT_TOKEN;
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 let supportBot;
 
 if (supportBotToken) {
@@ -30,9 +30,8 @@ if (supportBotToken) {
     };
 }
 
-// OpenRouter configuration for AI
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const PRIMARY_MODEL = "google/gemini-2.0-flash-001";
+// Google Gemini API client (supports optional GEMINI_PROXY_URL)
+const { geminiChat, GEMINI_MODEL: PRIMARY_MODEL } = require('../ai/geminiClient');
 
 // Define tools for the support bot (same as agent.js but focused on support)
 const supportTools = [
@@ -163,7 +162,7 @@ Your goal is to provide accurate help to customers in Myanmar (Burmese) language
 let chatHistories = {};
 
 async function getAIResponse(userId, userMessage) {
-    if (!OPENROUTER_API_KEY) {
+    if (!GEMINI_API_KEY) {
         return "⚠️ AI Support is currently unavailable (API Key missing). Please speak with a human.";
     }
 
@@ -190,20 +189,11 @@ async function getAIResponse(userId, userMessage) {
 
             while (retryCount < MAX_RETRIES) {
                 try {
-                    response = await axios.post(OPENROUTER_URL, {
-                        model: PRIMARY_MODEL,
+                    response = await geminiChat({
                         messages: chatHistories[userId],
                         tools: supportTools,
                         tool_choice: "auto"
-                    }, {
-                        headers: {
-                            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-                            "HTTP-Referer": "https://blasky-game-shop.com",
-                            "X-Title": "Blasky Game Shop Support Bot",
-                            "Content-Type": "application/json"
-                        },
-                        timeout: 60000 
-                    });
+                    }, { apiKey: GEMINI_API_KEY, timeout: 60000 });
                     break; // Success, exit retry loop
                 } catch (apiErr) {
                     retryCount++;
@@ -222,7 +212,7 @@ async function getAIResponse(userId, userMessage) {
             }
 
             if (!response.data || !response.data.choices || !response.data.choices[0]) {
-                throw new Error('Invalid response format from OpenRouter');
+                throw new Error('Invalid response format from Gemini');
             }
 
             const responseData = response.data.choices[0].message;
@@ -270,13 +260,13 @@ async function getAIResponse(userId, userMessage) {
     } catch (err) {
         console.error('AI Error Details:', {
             status: err.response?.status,
-            data: err.response?.data,
+            data: JSON.stringify(err.response?.data),
             message: err.message,
             userId: userId
         });
         
-        if (err.response?.status === 401) return "⚠️ AI Configuration Error: API Key is invalid.";
-        if (err.response?.status === 402) return "⚠️ AI Credit Error: OpenRouter account has insufficient credits.";
+        if (err.response?.status === 401 || err.response?.status === 403) return "⚠️ AI Configuration Error: Gemini API Key is invalid.";
+        if (err.response?.status === 429) return "⚠️ AI is busy right now (Gemini rate limit). Please try again in a minute or speak with a human.";
         
         return "⚠️ Support system is temporarily unavailable. Please try again later or speak with a human.";
     }

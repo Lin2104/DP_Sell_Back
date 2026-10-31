@@ -55,24 +55,6 @@ class SmileOneSessionManager {
         }
     }
 
-    async startMonitoring(intervalMinutes = 30) {
-        console.log(`[SmileOneSession] Starting session monitoring (every ${intervalMinutes} minutes)`);
-
-        const checkInterval = setInterval(async () => {
-            const result = await this.checkSession();
-
-            if (!result.isLoggedIn) {
-                await this.alertAdmin(
-                    '🔴 <b>SmileOne Session Expired!</b>\n\n' +
-                    'The Google login session has expired. Please log in manually in the browser that will open.\n\n' +
-                    '⚡ Action Required: Run the SmileOne login script to refresh the session.'
-                );
-            }
-        }, intervalMinutes * 60 * 1000);
-
-        return () => clearInterval(checkInterval);
-    }
-
     async requireLogin() {
         const state = await this.loadSessionState();
         if (state && !state.isLoggedIn) {

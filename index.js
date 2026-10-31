@@ -312,11 +312,6 @@ if (!MONGODB_URI) {
         await smileoneService.initialize();
         console.log('✅ SmileOneService initialized');
 
-        const sessionManager = require('./services/smileone/sessionManager');
-        sessionManager.setBot(bot);
-        sessionManager.startMonitoring(30);
-        console.log('✅ SmileOne session monitoring started');
-
         const stockMonitor = require('./services/plati/stockMonitor');
         stockMonitor.setBot(bot);
         stockMonitor.startMonitoring(10);
@@ -1343,16 +1338,17 @@ let currentAiAgent = null;
 app.post(`${API_BASE}/ai/start`, auth, async (req, res) => {
   try {
     if (req.user.role !== 'admin') return res.status(403).json({ error: 'Access denied' });
-    const { apiKey } = req.body;
-    if (!apiKey) return res.status(400).json({ error: 'API Key is required' });
+    // Use key from request body if provided, otherwise fall back to GEMINI_API_KEY from env
+    const apiKey = req.body?.apiKey || process.env.GEMINI_API_KEY;
+    if (!apiKey) return res.status(400).json({ error: 'Gemini API Key is required' });
 
     // Stop existing if any
     if (currentAiAgent) {
       currentAiAgent.isRunning = false;
     }
 
-    const OpenRouterAgent = require('./ai/agent');
-    currentAiAgent = new OpenRouterAgent(apiKey);
+    const { GeminiAgent } = require('./ai/agent');
+    currentAiAgent = new GeminiAgent(apiKey);
     currentAiAgent.isRunning = true;
     currentAiAgent.logs.push('AI Agent started successfully.');
     

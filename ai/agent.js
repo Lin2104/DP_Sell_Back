@@ -1,19 +1,19 @@
 const axios = require('axios');
 const tools = require("./tools");
 
-const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
-const PRIMARY_MODEL = "google/gemini-2.0-flash-001";
+// Google Gemini API client (supports optional GEMINI_PROXY_URL)
+const { geminiChat } = require('./geminiClient');
 
-class OpenRouterAgent {
-  constructor(apiKey) {
-    if (!apiKey) throw new Error("OpenRouter API Key is required");
+class GeminiAgent {
+  constructor(apiKey = process.env.GEMINI_API_KEY) {
+    if (!apiKey) throw new Error("Gemini API Key is required");
     this.apiKey = apiKey;
     this.chatHistory = []; // To store chat history for context
     this.isRunning = false;
     this.logs = [];
 
-    // Define the tools (function declarations) for OpenRouter
-    this.openRouterTools = [
+    // Define the tools (function declarations) for Gemini
+    this.geminiTools = [
       {
         type: "function",
         function: {
@@ -246,23 +246,13 @@ class OpenRouterAgent {
 
         while (retryCount < MAX_RETRIES) {
           try {
-            response = await axios.post(
-              OPENROUTER_API_URL,
+            response = await geminiChat(
               {
-                model: PRIMARY_MODEL,
                 messages: this.chatHistory,
-                tools: this.openRouterTools,
+                tools: this.geminiTools,
                 tool_choice: "auto"
               },
-              {
-                headers: {
-                  "Authorization": `Bearer ${this.apiKey}`,
-                  "Content-Type": "application/json",
-                  "X-Title": "DP_Sell AI Agent",
-                  "HTTP-Referer": "https://github.com/Lin2104/DP_Sell_Back" // Good practice for OpenRouter
-                },
-                timeout: 60000 
-              }
+              { apiKey: this.apiKey, timeout: 60000 }
             );
             break; // Success
           } catch (apiErr) {
@@ -282,7 +272,7 @@ class OpenRouterAgent {
         }
 
         if (!response.data || !response.data.choices || !response.data.choices[0]) {
-          throw new Error('Invalid response format from OpenRouter');
+          throw new Error('Invalid response format from Gemini');
         }
 
         const responseData = response.data.choices[0].message;
@@ -337,7 +327,7 @@ class OpenRouterAgent {
     } catch (err) {
       this.log(`Error in cycle: ${err.message}`);
       if (err.response) {
-        this.log(`OpenRouter API Error: ${JSON.stringify(err.response.data)}`);
+        this.log(`Gemini API Error: ${JSON.stringify(err.response.data)}`);
       }
     } finally {
       this.isRunning = false;
@@ -359,9 +349,10 @@ class OpenRouterAgent {
 let activeAgent = null;
 
 module.exports = {
+  GeminiAgent,
   startAgent: (apiKey) => {
     if (activeAgent) activeAgent.stop();
-    activeAgent = new OpenRouterAgent(apiKey);
+    activeAgent = new GeminiAgent(apiKey);
     activeAgent.start();
     return activeAgent;
   },

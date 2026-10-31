@@ -5,6 +5,7 @@ const Game = require('../models/Game');
 const Product = require('../models/Product');
 const PaymentMethod = require('../models/PaymentMethod');
 const axios = require('axios');
+const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
@@ -43,14 +44,19 @@ const RECEIVE_PHOTO_PATH = path.join(__dirname, '../public/Receive_Photo.jpg');
 const THANKS_PHOTO_PATH = path.join(__dirname, '../public/Thanks_Photo.jpg');
 const CANCEL_PHOTO_PATH = path.join(__dirname, '../public/Cancel_Photo.jpg');
 
-// Set API_URL and ADMIN_TOKEN from environment variables
-const API_URL = process.env.API_URL || 'http://localhost:5000/api';
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN;
-
-// Ensure ADMIN_TOKEN is set
-if (!ADMIN_TOKEN) {
-  console.error('ADMIN_TOKEN is not set. Admin bot actions will fail.');
-}
+// Set API_URL and helper to get a valid admin token dynamically
+const API_URL = process.env.API_URL || `http://localhost:${process.env.PORT || 5000}${process.env.API_BASE_PATH || '/api'}`;
+const getAdminToken = () => {
+  if (process.env.JWT_SECRET) {
+    let adminId = '69e6e13b8f9684d71489a260';
+    try {
+      const decoded = jwt.decode(process.env.ADMIN_TOKEN);
+      if (decoded?.id) adminId = decoded.id;
+    } catch (_) {}
+    return jwt.sign({ id: adminId, role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '1h' });
+  }
+  return process.env.ADMIN_TOKEN;
+};
 
 // Helper to check if a game is Mobile Legends
 const isMobileLegends = (game) => {
@@ -421,12 +427,12 @@ bot.on('text', async (ctx) => {
     const orderId = ctx.session.orderIdToReject;
     
     try {
-      const updatedOrder = await axios.patch(`${process.env.API_URL}/orders/${orderId}/status`, {
+      const updatedOrder = await axios.patch(`${API_URL}/orders/${orderId}/status`, {
         orderStatus: 'rejected',
         paymentStatus: 'rejected',
         rejectionReason: reason
       }, {
-        headers: { Authorization: `Bearer ${process.env.ADMIN_TOKEN}` }
+        headers: { Authorization: `Bearer ${getAdminToken()}` }
       });
 
       const caption = `📦 Order Update (${updatedOrder.data.gameType})!\n\n` +
@@ -608,12 +614,12 @@ bot.action(/^(approve|finish|cancel)_/, async (ctx) => {
       return ctx.reply(`Please provide a reason for rejecting Order ${orderId}:`, Markup.forceReply());
     }
 
-    const updatedOrder = await axios.patch(`${process.env.API_URL}/orders/${orderId}/status`, {
+    const updatedOrder = await axios.patch(`${API_URL}/orders/${orderId}/status`, {
       orderStatus: newOrderStatus,
       paymentStatus: newPaymentStatus,
       isAuto: isAuto
     }, {
-      headers: { Authorization: `Bearer ${process.env.ADMIN_TOKEN}` }
+      headers: { Authorization: `Bearer ${getAdminToken()}` }
     });
 
     // Redefine buttons for the updated message (remove if completed/rejected)
